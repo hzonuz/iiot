@@ -1,0 +1,63 @@
+services:
+  # simulator:
+  #   build: ./hub_image/
+  #   container_name: hub_simulator
+  #   volumes:
+  #     - ./app:/src
+  #   command: sh -c './run_mqtt_publisher.sh'
+
+  # web:
+  #   build: ./app/
+  #   container_name: fastapi_app
+  #   command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     - db
+  #     - influxdb
+  #     - mqtt
+  #   environment:
+  #     DATABASE_URL: "postgresql+asyncpg://iiot_user:your_password@db/iiot_db"
+  #     INFLUXDB_URL: "http://influxdb:8086"
+  #     INFLUXDB_TOKEN: "your_token"
+  #     INFLUXDB_ORG: "your_org_name"
+  #     INFLUXDB_BUCKET: "your_bucket_name"
+
+  db:
+    image: postgres:14.1-alpine
+    restart: on-failure
+    container_name: pgdb
+    environment:
+      POSTGRES_USER: iiot
+      POSTGRES_PASSWORD: CpglPWME
+      POSTGRES_DB: iiot
+    volumes:
+      - "db:/var/lib/postgresql/data_iiot"
+    ports:
+      - "9898:5432"
+    expose:
+      - 9898
+
+  influxdb:
+    image: influxdb:2.0
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: iiot
+      DOCKER_INFLUXDB_INIT_PASSWORD: CP55LaIjoYjnnDPMTcJWPpLKpCnzKUXE
+      DOCKER_INFLUXDB_INIT_ORG: "${DOCKER_INFLUXDB_INIT_ORG}"
+      DOCKER_INFLUXDB_INIT_BUCKET: "${DOCKER_INFLUXDB_INIT_BUCKET}"
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: "${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}"
+
+  mqtt:
+    image: eclipse-mosquitto:1.6
+    container_name: mqtt_broker
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+
+volumes:
+  db:
+    driver: local
