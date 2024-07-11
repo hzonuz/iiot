@@ -1,36 +1,36 @@
 services:
-  # simulator:
-  #   build: ./hub/
-  #   container_name: hub_simulator
-  #   environment:
-  #     BROKER_HOST: mqtt
-  #     BROKER_PORT: 1883
-  #   volumes:
-  #     - ./hub:/src
-  #   command: sh -c './run_mqtt_publisher.sh'
+  simulator:
+    build: ./hub/
+    container_name: hub_simulator
+    environment:
+      BROKER_HOST: mqtt
+      BROKER_PORT: 1883
+    volumes:
+      - ./hub:/src
+    command: sh -c './run_mqtt_publisher.sh'
 
-  # web:
-  #   build: ./app/
-  #   container_name: fastapi_app
-  #   command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-  #   ports:
-  #     - "8000:8000"
-  #   depends_on:
-  #     - db
-  #     - influxdb
-  #     - mqtt
-  #   environment:
-  #     SECRET_KEY: IGeiaaqT1ytVodb7uYxmp9v83g9AEw15
-  #     DOCKER_INFLUXDB_INIT_ORG: plant
-  #     DOCKER_INFLUXDB_INIT_BUCKET: data
-  #     DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: QcK88ovWesAIJSOXjm67ghVYCpglPWME
-  #     DATABASE_URL: postgresql://iiot:CpglPWME@db:5432/iiot
-  #     INFLUXDB_URL: http://influxdb:8086
-  #     INFLUXDB_TOKEN: QcK88ovWesAIJSOXjm67ghVYCpglPWME
-  #     INFLUXDB_ORG: plant
-  #     INFLUXDB_BUCKET: data
-  #     BROKER_HOST: mqtt
-  #     BROKER_PORT: 1883
+  web:
+    build: ./app/
+    container_name: fastapi_app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - influxdb
+      - mqtt
+    environment:
+      SECRET_KEY: IGeiaaqT1ytVodb7uYxmp9v83g9AEw15
+      DOCKER_INFLUXDB_INIT_ORG: plant
+      DOCKER_INFLUXDB_INIT_BUCKET: data
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: QcK88ovWesAIJSOXjm67ghVYCpglPWME
+      DATABASE_URL: postgresql://iiot:CpglPWME@db:5432/iiot
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: QcK88ovWesAIJSOXjm67ghVYCpglPWME
+      INFLUXDB_ORG: plant
+      INFLUXDB_BUCKET: data
+      BROKER_HOST: mqtt
+      BROKER_PORT: 1883
 
   db:
     image: postgres:14.1-alpine
