@@ -25,15 +25,17 @@ import axios from "axios";
 
 const API_URL = "http://localhost:8000";
 
-const hubs = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
-
 const colors = [
-  "rgba(75,192,192,1)",
-  "rgba(153,102,255,1)",
-  "rgba(255,159,64,1)",
-  "rgba(255,99,132,1)",
-  "rgba(54,162,235,1)",
-  "rgba(255,206,86,1)",
+  "rgba(31, 119, 180, 1)", // Blue
+  "rgba(44, 160, 44, 1)",
+  "rgba(255, 127, 14, 1)", // Orange
+  "rgba(140, 86, 75, 1)", // Brown
+  "rgba(188, 189, 34, 1)",
+  "rgba(214, 39, 40, 1)",
+  "rgba(148, 103, 189, 1)",
+  "rgba(23, 190, 207, 1)",
+  "rgba(227, 119, 194, 1)", // Pink
+  "rgba(127, 127, 127, 1)", // Gray
 ];
 
 const LineChart = () => {
@@ -44,27 +46,10 @@ const LineChart = () => {
   const [endDate, setEndDate] = useState(new Date());
   const [endTime, setEndTime] = useState(new Date());
   const [selectedHubs, setSelectedHubs] = useState([]);
+  const [hubs, setHubs] = useState([]);
 
-  // const [data, setData] = useState([
-  //   {
-  //     labels: [],
-  //     datasets: [
-  //       {
-  //         label: "Temperature (°C)",
-  //         borderColor: "rgba(75,192,192,1)",
-  //         backgroundColor: "rgba(75,192,192,0.2)",
-  //         data: [],
-  //       },
-  //       {
-  //         label: "Humidity (%)",
-  //         borderColor: "rgba(255,165,0,1)",
-  //         backgroundColor: "rgba(255,165,0,0.2)",
-  //         data: [],
-  //       },
-  //     ],
-  //   },
-  // ]);
   const [data, setData] = useState([]);
+
   const fetchData = async (startDateTime, endDateTime) => {
     setToken(localStorage.getItem("token"));
     if (token) {
@@ -76,11 +61,11 @@ const LineChart = () => {
           }
         )
         .then((response) => {
-          const processedData = response.data.map((d) => ({
+          const processedData = response.data.data.map((d) => ({
             time: d.time,
             temperature: d.temperature,
             humidity: d.humidity,
-            hub_id: d.hub_id
+            hub_id: d.hub_id,
           }));
           setData(processedData);
         })
@@ -88,9 +73,38 @@ const LineChart = () => {
           console.error("Error fetching data:", error);
         });
       setLoading(false);
-      console.log(startDateTime.toISOString());
     }
+    setLoading(false);
   };
+
+  useEffect(() => {
+    const fetchHubs = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/hubs");
+        const hubData = await response.json();
+        setHubs(hubData.hubs);
+      } catch (error) {
+        console.error("Error fetching hubs:", error);
+      }
+    };
+    fetchHubs();
+  }, []);
+
+  useEffect(() => {
+    if (loading) {
+      const startDateTime = new Date(startDate);
+      startDateTime.setHours(startTime.getHours() - 1);
+      startDateTime.setMinutes(startTime.getMinutes());
+
+      setStartTime(startDateTime);
+
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(endTime.getHours());
+      endDateTime.setMinutes(endTime.getMinutes());
+
+      fetchData(startDateTime, endDateTime);
+    }
+  }, []);
 
   const handleFilter = () => {
     const startDateTime = new Date(startDate);
@@ -105,179 +119,63 @@ const LineChart = () => {
     fetchData(startDateTime, endDateTime);
   };
 
-  const processDataForChart = () => {
-    const hubDataMap = selectedHubs.reduce((acc, hub_id) => {
-        acc[hub_id] = {
-            time: [],
-            temperature: [],
-            humidity: []
-        };
-        return acc;
-    }, {});
-
-    data.forEach(item => {
-        const { hub_id, time, temperature, humidity } = item;
-        if (selectedHubs.includes(hub_id)) {
-            // The time is in "YYYY/MM/DD, HH:mm:ss" format. Converting it to a Date object.
-            const dateTime = new Date(time.replace(',', ''));
-            hubDataMap[hub_id].time.push(dateTime);
-            hubDataMap[hub_id].temperature.push(temperature);
-            hubDataMap[hub_id].humidity.push(humidity);
-        }
-    });
-
+  const generateChartData = () => {
     const datasets = [];
-    
-    Object.keys(hubDataMap).forEach((hub_id, index) => {
-        datasets.push({
-            label: `Hub ${hub_id} - Temperature`,
-            data: hubDataMap[hub_id].time.map((time, i) => ({
-                x: time,
-                y: hubDataMap[hub_id].temperature[i],
-            })),
-            fill: false,
-            backgroundColor: colors[index % colors.length],
-            borderColor: colors[index % colors.length],
-            yAxisID: 'y-axis-temperature',
-        });
-        datasets.push({
-            label: `Hub ${hub_id} - Humidity`,
-            data: hubDataMap[hub_id].time.map((time, i) => ({
-                x: time,
-                y: hubDataMap[hub_id].humidity[i],
-            })),
-            fill: false,
-            backgroundColor: colors[(index + 3) % colors.length], // offset for humidity colors
-            borderColor: colors[(index + 3) % colors.length],
-            yAxisID: 'y-axis-humidity',
-        });
+    selectedHubs.forEach((element, index) => {
+      const hub_data = data.filter((d) => d.hub_id === element);
+      datasets.push({
+        label: `Hub ${element} - Temperature`,
+        data: hub_data.map((hub) => ({ x: hub.time, y: hub.temperature })),
+        fill: false,
+        backgroundColor: colors[index % colors.length],
+        borderColor: colors[index % colors.length],
+        yAxisID: "y-axis-temperature",
+      });
+      datasets.push({
+        label: `Hub ${element} - Humidity`,
+        data: hub_data.map((hub) => ({ x: hub.time, y: hub.humidity })),
+        fill: false,
+        backgroundColor: colors[(index + 5) % colors.length], // offset for humidity colors
+        borderColor: colors[(index + 5) % colors.length],
+        yAxisID: "y-axis-humidity",
+      });
     });
 
     return { datasets };
-};
+  };
 
-const options = {
+  const options = {
     responsive: true,
     scales: {
-        x: {
-            type: 'timeseries',
-            time: {
-                unit: 'minute',
-            },
-            title: {
-                display: true,
-                text: 'Time',
-            },
+      x: {
+        title: {
+          display: true,
+          text: "Time",
         },
-        y: {
-            type: 'linear',
-            display: true,
-            position: 'left',
-            id: 'y-axis-temperature',
-            title: {
-                display: true,
-                text: 'Temperature',
-            },
+      },
+      "y-axis-temperature": {
+        type: "linear",
+        display: true,
+        position: "left",
+        title: {
+          display: true,
+          text: "Temperature",
         },
-        y1: {
-            type: 'linear',
-            display: true,
-            position: 'right',
-            id: 'y-axis-humidity',
-            title: {
-                display: true,
-                text: 'Humidity',
-            },
-            grid: {
-                drawOnChartArea: false,
-            },
+      },
+      "y-axis-humidity": {
+        type: "linear",
+        display: true,
+        position: "right",
+        title: {
+          display: true,
+          text: "Humidity",
         },
+        grid: {
+          drawOnChartArea: false,
+          display: false,
+        },
+      },
     },
-};
-
-  // const generateChartData = () => {
-  //   const cfgs = [];
-  //   selectedHubs.forEach((element, index) => {
-  //     const hub_data = data.filter((d) => d.hub_id === element);
-  //     console.log(hub_data);
-  //     cfgs.push({
-  //       // label: `Hub ${element} - Temperature`,
-  //       datasets: [{
-  //       data: hub_data.map(hub =>  ({x: hub.time, y: hub.temperature}
-  //       ))
-  //     }],
-  //       fill: false,
-  //       backgroundColor: colors[index % colors.length],
-  //       borderColor: colors[index % colors.length],
-  //       yAxisID: "y-axis-temperature",
-  //     });
-  //     cfgs.push({
-  //       // label: `Hub ${element} - Humidity`,
-  //       datasets: [{
-  //         data: hub_data.map(hub => ( {x: hub.time, y: hub.humidity}
-  //         ))
-  //       }],
-  //       fill: false,
-  //       backgroundColor: colors[(index + 3) % colors.length], // offset for humidity colors
-  //       borderColor: colors[(index + 3) % colors.length],
-  //       yAxisID: "y-axis-humidity",
-  //     });
-  //   });
-
-  //   return { cfgs };
-  // };
-
-  // const options = {
-  //   responsive: true,
-  //   scales: {
-  //     x: {
-  //       title: {
-  //         display: true,
-  //         text: "Time",
-  //       },
-  //     },
-  //     y: {
-  //       type: "linear",
-  //       display: true,
-  //       position: "left",
-  //       id: "y-axis-temperature",
-  //       title: {
-  //         display: true,
-  //         text: "Temperature",
-  //       },
-  //     },
-  //     y1: {
-  //       type: "linear",
-  //       display: true,
-  //       position: "right",
-  //       id: "y-axis-humidity",
-  //       title: {
-  //         display: true,
-  //         text: "Humidity",
-  //       },
-  //       grid: {
-  //         drawOnChartArea: false,
-  //       },
-  //     },
-  //   },
-  // };
-
-  const chartData = {
-    labels: data.map((d) => d.timestamp),
-    datasets: [
-      {
-        label: "Temperature",
-        data: data.map((d) => d.temperature),
-        borderColor: "rgba(75,192,192,1)",
-        fill: false,
-      },
-      {
-        label: "Humidity",
-        data: data.map((d) => d.humidity),
-        borderColor: "rgba(153,102,255,1)",
-        fill: false,
-      },
-    ],
   };
 
   return (
@@ -321,6 +219,7 @@ const options = {
               value={selectedHubs}
               onChange={(e) => setSelectedHubs(e.target.value)}
               renderValue={(selected) => selected.join(", ")}
+              sx={{ minWidth: 90 }}
             >
               {hubs.map((hub) => (
                 <MenuItem key={hub} value={hub}>
@@ -354,13 +253,12 @@ const options = {
       ) : (
         <div>
           <h2>Sensor Data</h2>
-          {/* <Line data={chartData} /> */}
-          {(data).length > 0 ? (
+          {data.length > 0 ? (
             <Paper sx={{ p: 2, mb: 2 }}>
               <Typography variant="h6" gutterBottom>
                 Temperature and Humidity Data
               </Typography>
-              <Line data={processDataForChart()} options={options} />
+              <Line data={generateChartData()} options={options} />
             </Paper>
           ) : (
             <Typography variant="body2">

@@ -5,13 +5,13 @@ from dateutil import parser
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from app.auth import get_current_user
-from app.models import User
+from app.models import HubList, SensorData, SensorDataList, User
 from app.influx import get_query_api, BUCKET, ORG
 
 router = APIRouter()
 
 
-@router.get("/api/data")
+@router.get("/api/data", response_model=SensorDataList)
 def get_data(current_user: User = Depends(get_current_user), start: Optional[datetime] = None, end: Optional[datetime] = None, hub_ids: Optional[str] = None):
     query = f'from(bucket: "{BUCKET}") |> range(start:-1h) |> filter(fn: (r) => r["_measurement"] == "sensor_data") |> filter(fn: (r) => r["_field"] == "humidity" or r["_field"] == "temperature")'
 
@@ -36,6 +36,20 @@ def get_data(current_user: User = Depends(get_current_user), start: Optional[dat
             data[time]["hub_id"] = record["hub_id"]
             data[time]["time"] = time
     
-    final_data = [{"time": time, **values} for time, values in data.items()]
+    final_data = [SensorData(**values) for time, values in data.items()]
     
-    return JSONResponse(content=final_data)
+    return {"data": final_data}
+
+
+@router.get("/api/hubs", response_model=HubList)
+async def get_hubs():
+    query = f'from(bucket: "{BUCKET}") |> range(start: -30d) |> keep(columns: ["hub_id"]) |> distinct(column: "hub_id")'
+    result = get_query_api().query(org=ORG, query=query)
+    
+    hub_ids = []
+    for table in result:
+        for record in table.records:
+            if record.get_value():
+                hub_ids.append(record.get_value())
+    
+    return HubList(hubs=hub_ids)

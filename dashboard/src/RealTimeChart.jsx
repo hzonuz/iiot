@@ -61,7 +61,6 @@ const RealTimeChart = () => {
         WebSocketInstance.addCallbacks(updateChart);
 
         return () => {
-            console.log("BASSSTE");
             WebSocketInstance.socketRef.close();
         };
     }, []);

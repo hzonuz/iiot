@@ -40,7 +40,7 @@ client.on_connect = on_connect
 client.on_message = on_message
 
 broker_host = os.getenv("BROKER_HOST", "localhost")
-broker_port = os.getenv("BROKER_PORT", 1883)
+broker_port = 1883
 
 client.connect(broker_host, broker_port)
 client.loop_start()
