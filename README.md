@@ -85,3 +85,6 @@ The system is composed of the following key components:
     - **InfluxDB**: Ideal for time-series data storage with efficient querying.
     - **PostgreSQL**: Robust and reliable for user data and authentication.
     - **React**: Preferred for its component-based architecture and dynamic UI capabilities.
+
+### Sample Chart Example
+![chart](chart.png)
