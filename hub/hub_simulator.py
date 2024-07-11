@@ -12,7 +12,7 @@ args = parser.parse_args()
 
 # MQTT broker details
 broker = os.getenv("BROKER_HOST", "localhost")
-port = os.getenv("BROKER_PORT", 1883)
+port = 1883
 topic = f"sensor/data/{args.hub_id}"
 
 # Create an MQTT client instance
